@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Windows 11 25H2 설치 시뮬레이터 — 컴도깨비</title>
+<style>
+:root{
+  --bg:#0b1220; --bg2:#111c30; --panel:#16233b; --line:#27385a;
+  --txt:#e8eef8; --dim:#9db0cc; --accent:#0f7bd8; --accent2:#3aa0ff;
+  --warn:#ffb020; --ok:#25c27a; --danger:#ff5f56;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:linear-gradient(160deg,#0a1020,#101c33 60%,#0a1526);
+  color:var(--txt); font-family:"Malgun Gothic","맑은 고딕",Pretendard,-apple-system,"Segoe UI",sans-serif;
+  overflow:hidden;
+}
+button{font-family:inherit}
+
+/* ================= 메인화면 ================= */
+#main{
+  position:fixed; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:26px; padding:24px;
+  overflow:auto;
+}
+.logo{display:flex;align-items:center;gap:18px}
+.winmark{width:66px;height:66px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;transform:perspective(200px) rotateY(-8deg)}
+.winmark i{background:#3aa0ff;border-radius:3px;display:block}
+h1{font-size:36px;margin:0;letter-spacing:-.5px}
+.sub{color:var(--dim);font-size:15px;margin:0}
+.menu{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.mbtn{
+  width:290px;padding:26px 22px;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(180deg,#182a47,#12203a); color:var(--txt);
+  cursor:pointer; text-align:left; transition:.15s; font-size:15px;
+}
+.mbtn:hover{border-color:var(--accent2); transform:translateY(-3px); box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.mbtn b{display:block;font-size:20px;margin-bottom:8px}
+.mbtn span{color:var(--dim);font-size:13.5px;line-height:1.55}
+.mbtn .ico{font-size:26px;display:block;margin-bottom:10px}
+.notice{
+  max-width:640px;text-align:center;color:var(--dim);font-size:12.5px;line-height:1.7;
+  border-top:1px solid var(--line); padding-top:16px; margin-top:8px;
+}
+
+/* ================= 시뮬레이터 ================= */
+#sim{position:fixed;inset:0;display:none;flex-direction:column;background:#05080f}
+#topbar{
+  display:flex;align-items:center;gap:14px;padding:8px 14px;
+  background:#0d1728;border-bottom:1px solid var(--line);flex:0 0 auto;
+}
+#topbar .step{font-size:13px;color:var(--dim);white-space:nowrap}
+#topbar .step b{color:#fff}
+#bar{flex:1;height:6px;background:#1b2942;border-radius:99px;overflow:hidden;min-width:60px}
+#bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#0f7bd8,#3aa0ff);transition:.35s}
+.tbtn{
+  background:#1b2c49;border:1px solid var(--line);color:var(--txt);
+  padding:7px 13px;border-radius:8px;cursor:pointer;font-size:13px;white-space:nowrap;
+}
+.tbtn:hover{background:#25406b;border-color:var(--accent2)}
+.tbtn.on{background:var(--accent);border-color:var(--accent2)}
+
+#stagewrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:10px}
+#stage{position:relative;background:#000;box-shadow:0 0 0 1px #223,0 18px 60px rgba(0,0,0,.7);line-height:0}
+#shot{display:block;max-width:100%;max-height:100%;user-select:none;-webkit-user-drag:none}
+
+.hot{position:absolute;cursor:pointer;border-radius:6px;z-index:5}
+.hot:hover{background:rgba(58,160,255,.22);box-shadow:0 0 0 2px rgba(58,160,255,.85) inset}
+body.hint .hot{
+  background:rgba(58,160,255,.13);
+  box-shadow:0 0 0 2px rgba(58,160,255,.75) inset;
+  animation:pulse 1.7s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px rgba(58,160,255,.35) inset}50%{box-shadow:0 0 0 3px rgba(58,160,255,.95) inset}}
+.hot .tip{
+  position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);
+  background:#0b1220;border:1px solid var(--accent2);color:#fff;font-size:12px;
+  padding:4px 9px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:.12s;line-height:1.4;
+}
+.hot:hover .tip{opacity:1}
+
+.helpdot{
+  position:absolute;z-index:8;width:34px;height:34px;border-radius:50%;
+  background:var(--warn);color:#20160a;border:2px solid #fff;
+  font-size:19px;font-weight:800;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(0,0,0,.5);animation:bob 1.8s ease-in-out infinite;
+}
+.helpdot:hover{background:#ffcb52;transform:scale(1.12)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.helpdot .tip{
+  position:absolute;right:calc(100% + 10px);top:50%;transform:translateY(-50%);
+  background:#20160a;color:#ffd982;border:1px solid var(--warn);font-size:12px;font-weight:600;
+  padding:5px 10px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:.12s;
+}
+.helpdot:hover .tip{opacity:1}
+
+#toast{
+  position:absolute;left:50%;top:16px;transform:translateX(-50%);
+  background:rgba(8,14,26,.94);border:1px solid var(--accent2);color:#fff;
+  padding:9px 16px;border-radius:10px;font-size:13.5px;z-index:20;
+  opacity:0;transition:.25s;pointer-events:none;line-height:1.5;max-width:80%;text-align:center;
+}
+#toast.show{opacity:1}
+
+#done{
+  position:absolute;inset:0;z-index:30;display:none;
+  align-items:center;justify-content:center;background:rgba(4,8,16,.82);backdrop-filter:blur(3px);
+}
+#done .card{
+  background:linear-gradient(180deg,#16233b,#101a2d);border:1px solid var(--line);
+  border-radius:18px;padding:34px 40px;text-align:center;max-width:520px;line-height:1.7;
+}
+#done h2{margin:0 0 10px;font-size:26px}
+#done p{color:var(--dim);font-size:14px;margin:0 0 20px}
+
+/* ================= 도움말 ================= */
+#help{
+  position:fixed;inset:0;z-index:60;display:none;
+  background:rgba(4,8,16,.72);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:20px;
+}
+#helpbox{
+  width:min(1020px,100%);height:min(88vh,900px);background:#0e1a2d;
+  border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;
+}
+#helphead{
+  display:flex;align-items:center;gap:12px;padding:14px 18px;
+  border-bottom:1px solid var(--line);background:#101d33;flex:0 0 auto;
+}
+#helphead h2{margin:0;font-size:19px;flex:1}
+#helpbody{flex:1;display:flex;min-height:0}
+#helpnav{
+  width:230px;flex:0 0 auto;border-right:1px solid var(--line);
+  padding:12px;overflow:auto;background:#0c1728;
+}
+#helpnav button{
+  display:block;width:100%;text-align:left;margin-bottom:8px;padding:12px 13px;
+  background:#152441;border:1px solid var(--line);border-radius:10px;color:var(--txt);
+  cursor:pointer;font-size:13.5px;line-height:1.45;transition:.13s;
+}
+#helpnav button:hover{border-color:var(--accent2)}
+#helpnav button.on{background:var(--accent);border-color:var(--accent2);color:#fff;font-weight:700}
+#helpnav button small{display:block;color:var(--dim);font-size:11.5px;margin-top:3px;font-weight:400}
+#helpnav button.on small{color:#d7ecff}
+#helpcontent{flex:1;overflow:auto;padding:24px 30px;font-size:14px;line-height:1.85}
+#helpcontent h3{
+  font-size:21px;margin:0 0 6px;color:#fff;
+}
+#helpcontent .lead{color:var(--dim);font-size:13.5px;margin:0 0 22px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+#helpcontent h4{
+  font-size:16px;margin:26px 0 10px;color:#8fc9ff;
+  display:flex;align-items:center;gap:9px;
+}
+#helpcontent h4::before{content:"";width:5px;height:17px;background:var(--accent2);border-radius:3px;flex:0 0 auto}
+#helpcontent p{margin:0 0 12px}
+#helpcontent ul,#helpcontent ol{margin:0 0 14px;padding-left:22px}
+#helpcontent li{margin-bottom:7px}
+#helpcontent code{
+  background:#1d2c47;padding:2px 7px;border-radius:5px;font-size:12.8px;
+  font-family:Consolas,"D2Coding",monospace;color:#a9e0ff;
+}
+#helpcontent pre{
+  background:#08111f;border:1px solid var(--line);border-left:3px solid var(--accent2);
+  padding:13px 15px;border-radius:9px;overflow:auto;margin:0 0 14px;
+}
+#helpcontent pre code{background:none;padding:0;color:#bfe6ff;font-size:12.8px;line-height:1.75;display:block}
+.tag{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:99px;margin-right:6px;vertical-align:2px}
+.tag.err{background:#4a1c1c;color:#ff9a92;border:1px solid #7a2d2d}
+.tag.tip{background:#123a2a;color:#6ee7a8;border:1px solid #1e6b4b}
+.box{
+  border-radius:10px;padding:13px 16px;margin:0 0 16px;font-size:13.4px;line-height:1.8;
+  border:1px solid;
+}
+.box.warn{background:#33260c;border-color:#7a5a13;color:#ffdb95}
+.box.info{background:#0f2740;border-color:#245277;color:#bfe0ff}
+.box.ok{background:#0f2b1f;border-color:#1e6b4b;color:#9df0c5}
+.box b{color:#fff}
+kbd{
+  background:#22314e;border:1px solid #3a5079;border-bottom-width:2px;
+  border-radius:5px;padding:1px 7px;font-size:12.5px;font-family:Consolas,monospace;color:#dbe9ff;
+}
+.close{
+  background:#26364f;border:1px solid var(--line);color:#fff;width:34px;height:34px;
+  border-radius:9px;cursor:pointer;font-size:17px;line-height:1;flex:0 0 auto;
+}
+.close:hover{background:var(--danger);border-color:var(--danger)}
+@media (max-width:820px){
+  #helpnav{width:150px}
+  #helpcontent{padding:18px}
+  h1{font-size:26px}
+}
+</style>
+</head>
+<body class="hint">
+
+<!-- ================= 메인화면 ================= -->
+<div id="main">
+  <div class="logo">
+    <div class="winmark"><i></i><i></i><i></i><i></i></div>
+    <div>
+      <h1>Windows 11 25H2 설치 도우미</h1>
+      <p class="sub">실제 설치 화면 그대로 따라해 보는 연습용 시뮬레이터</p>
+    </div>
+  </div>
+
+  <div class="menu">
+    <button class="mbtn" onclick="startSim()">
+      <span class="ico">▶</span>
+      <b>윈도우11 설치 시뮬레이션 해보기</b>
+      <span>실제 설치 화면을 그대로 클릭하며 처음부터 끝까지 연습합니다. 실제로 설치되지는 않습니다.</span>
+    </button>
+    <button class="mbtn" onclick="openHelp('partition')">
+      <span class="ico">?</span>
+      <b>도움말 (문제 해결)</b>
+      <span>파티션, 보안 부팅·TPM 2.0, 인터넷 연결, 로그인 등 설치 중 자주 막히는 문제의 해결 방법을 봅니다.</span>
+    </button>
+  </div>
+
+  <p class="notice">
+    ⚠ 이 프로그램은 <b>연습용 시뮬레이터</b>입니다. 실제로 디스크를 건드리거나 Windows를 설치하지 않습니다.<br>
+    화면 이미지는 <code>윈도우11 25H2 온라인 설치</code> 폴더의 실제 설치 캡처를 사용합니다.<br>
+    이 HTML 파일은 반드시 해당 폴더와 <b>같은 위치</b>(<code>6. 윈도우 설치 도우미</code> 폴더)에 두어야 그림이 보입니다.
+  </p>
+</div>
+
+<!-- ================= 시뮬레이터 ================= -->
+<div id="sim">
+  <div id="topbar">
+    <button class="tbtn" onclick="goMain()">◀ 메인으로</button>
+    <button class="tbtn" onclick="prevStep()">이전 단계</button>
+    <button class="tbtn" onclick="restart()">처음부터</button>
+    <div class="step">단계 <b><span id="stepno">1</span></b> / <span id="steptotal">40</span> · <span id="stepname">-</span></div>
+    <div id="bar"><i></i></div>
+    <button class="tbtn on" id="hintbtn" onclick="toggleHint()">힌트 표시 ON</button>
+    <button class="tbtn" onclick="openHelp('partition')">? 도움말</button>
+  </div>
+  <div id="stagewrap">
+    <div id="stage">
+      <img id="shot" alt="설치 화면">
+      <div id="toast"></div>
+      <div id="done">
+        <div class="card">
+          <h2>🎉 설치 시뮬레이션 완료!</h2>
+          <p>Windows 11 25H2 설치와 초기 설정 과정을 모두 마쳤습니다.<br>
+             실제 설치에서도 같은 순서로 진행하면 됩니다.</p>
+          <button class="tbtn" onclick="restart()">다시 해보기</button>
+          <button class="tbtn" onclick="goMain()">메인으로</button>
+          <button class="tbtn" onclick="openHelp('partition')">도움말 보기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 도움말 ================= -->
+<div id="help">
+  <div id="helpbox">
+    <div id="helphead">
+      <h2>🛠 설치 문제 해결 도움말</h2>
+      <button class="close" onclick="closeHelp()">✕</button>
+    </div>
+    <div id="helpbody">
+      <div id="helpnav"></div>
+      <div id="helpcontent"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ===================================================================
+   이미지 폴더 (이 HTML 파일 기준 상대경로)
+   =================================================================== */
+const DIR = "윈도우11 25H2 온라인 설치/";
+const img = n => encodeURI(DIR + n);
+
+/* 반복 프레임 도우미 */
+const seq = (pre, from, to, ext) => {
+  const a = [];
+  for (let i = from; i <= to; i++) a.push(pre + i + (ext || ".jpg"));
+  return a;
+};
+
+/* ===================================================================
+   공통 버튼 좌표 (이미지 크기 대비 %)
+   =================================================================== */
+const B = {
+  // Windows 11 설치 대화상자(2~8번 화면)
+  next:  {l:70.3, t:78.8, w:10.4, h:4.0},   // 다음(N) / 동의(A) / 설치(I)
+  back:  {l:60.2, t:78.8, w:10.0, h:4.0},   // 뒤로(B) / 거부(D)
+  // OOBE(11번 이후) 오른쪽 파란 버튼
+  o1:    {l:78.0, t:82.9, w:13.2, h:4.6},   // 예 / 다음 / 로그인 / 계속 …
+  o1b:   {l:79.4, t:83.0, w:13.4, h:4.6},   // 수락 (개인정보 화면)
+  o2:    {l:64.3, t:83.2, w:13.4, h:4.2},   // 건너뛰기 / 자세히 알아보기 …
+};
+
+/* ===================================================================
+   화면 정의
+   type: shot(클릭식) | anim(자동 재생)
+   hots: 클릭 영역 [{...pos, tip:"설명", go:"다음화면id"}]
+   help: 도움말 아이콘 [{l,t,topic,tip}]
+   =================================================================== */
+const S = {
+
+/* ---------- 부팅 ---------- */
+boot: {
+  name:"USB/DVD 부팅", src:"1.jpg",
+  hots:[{l:0,t:0,w:100,h:100, tip:"아무 키나 누르기 (화면 클릭)", go:"lang"}],
+  help:[{l:92.2,t:5,topic:"media",tip:"부팅이 안 되나요?"}]
+},
+
+/* ---------- Windows 설치 마법사 ---------- */
+lang: {
+  name:"언어 설정 선택", src:"2.jpg",
+  hots:[{...B.next, tip:"다음(N)", go:"keyb"}]
+},
+keyb: {
+  name:"키보드 설정 선택", src:"3.jpg",
+  hots:[
+    {...B.next, tip:"다음(N)", go:"opt"},
+    {...B.back, tip:"뒤로(B)", go:"lang"}
+  ]
+},
+opt: {
+  name:"설치 옵션 선택", src:"4-1.jpg",
+  hots:[
+    {l:18.5,t:40.2,w:42,h:4.2, tip:"동의 체크박스를 눌러야 [다음]이 켜집니다", go:"opt2"},
+    {...B.back, tip:"뒤로(B)", go:"keyb"}
+  ],
+  toast:"체크박스에 동의해야 [다음(N)] 버튼이 활성화됩니다."
+},
+opt2: {
+  name:"설치 옵션 선택 (동의 완료)", src:"4-2.jpg",
+  hots:[
+    {...B.next, tip:"다음(N)", go:"key"},
+    {...B.back, tip:"뒤로(B)", go:"keyb"}
+  ]
+},
+key: {
+  name:"제품 키", src:"5.jpg",
+  hots:[
+    {l:19.0,t:37.3,w:35,h:3.6, tip:"제품 키 입력하기", go:"keyChk"},
+    {l:19.0,t:71.3,w:12,h:3.2, tip:"제품 키가 없습니다 → 에디션 직접 선택", go:"edi1"},
+    {...B.back, tip:"뒤로(B)", go:"opt2"}
+  ],
+  toast:"제품 키가 없으면 아래 [제품 키가 없습니다.]를 눌러 진행할 수 있습니다.",
+  help:[{l:90.5,t:24,topic:"tpm",tip:"제품 키·에디션 관련"}]
+},
+keyChk: {
+  name:"제품 키 확인 중", type:"anim",
+  frames:["5-1-1.jpg"], interval:1600, go:"keyOk"
+},
+keyOk: {
+  name:"제품 키 확인 완료", src:"5-1-2.jpg",
+  hots:[{...B.next, tip:"다음(N)", go:"eula"}],
+  toast:"제품 키가 확인되면 해당 에디션으로 자동 설치됩니다."
+},
+edi1: {
+  name:"이미지(에디션) 선택 — Home", src:"5-1.jpg",
+  hots:[
+    {l:19.5,t:41.6,w:61,h:2.6, tip:"Windows 11 Pro 선택", go:"edi2"},
+    {...B.next, tip:"다음(N) — Home으로 설치", go:"eula"},
+    {...B.back, tip:"뒤로(B)", go:"key"}
+  ],
+  toast:"목록에서 설치할 에디션을 고른 뒤 [다음]을 누릅니다."
+},
+edi2: {
+  name:"이미지(에디션) 선택 — Pro", src:"5-2.jpg",
+  hots:[
+    {l:19.5,t:36.7,w:61,h:2.6, tip:"Windows 11 Home 선택", go:"edi1"},
+    {...B.next, tip:"다음(N) — Pro로 설치", go:"eula"},
+    {...B.back, tip:"뒤로(B)", go:"key"}
+  ]
+},
+eula: {
+  name:"관련 통지 및 사용 조건", src:"6.jpg",
+  hots:[
+    {...B.next, tip:"동의(A)", go:"part1"},
+    {...B.back, tip:"거부(D)", go:"edi1"}
+  ]
+},
+
+/* ---------- 파티션 ---------- */
+part1: {
+  name:"설치 위치 선택 (할당되지 않은 공간)", src:"7-1.jpg",
+  hots:[
+    {l:49.8,t:34.4,w:12.5,h:3.2, tip:"파티션 만들기(C)", go:"part2"},
+    {l:19.0,t:30.2,w:9.5,h:3.2, tip:"새로 고침(R) — 디스크가 안 보일 때", go:"part1", toast:"디스크 목록을 새로 읽습니다. 그래도 안 보이면 도움말의 [드라이버 로드]를 확인하세요."},
+    {l:34.5,t:30.2,w:10.5,h:3.2, tip:"드라이버 로드(L) — SSD가 안 보일 때", go:"part1", toast:"NVMe/RAID(VMD) 드라이버가 필요한 경우입니다. 오른쪽 ? 도움말을 참고하세요."},
+    {l:19.5,t:47.5,w:61,h:3.0, tip:"디스크 0 (할당되지 않은 공간) 선택", go:"part1"},
+    {...B.next, tip:"다음(N) — 자동으로 파티션 생성 후 설치", go:"ready"},
+    {...B.back, tip:"뒤로(B)", go:"eula"}
+  ],
+  toast:"파티션 화면입니다. 오른쪽 ? 아이콘을 누르면 문제 해결 도움말이 열립니다.",
+  help:[{l:90.5,t:30,topic:"partition",tip:"파티션 문제 해결"}]
+},
+part2: {
+  name:"설치 위치 선택 (파티션 생성 완료)", src:"7-2.jpg",
+  hots:[
+    {l:19.5,t:52.4,w:61,h:2.6, tip:"디스크 0 파티션 3 (주) 선택 — 여기에 설치", go:"part2"},
+    {l:19.0,t:34.4,w:12,h:3.2, tip:"파티션 삭제(D) — 주의: 데이터가 지워집니다", go:"part1", toast:"⚠ 파티션을 삭제하면 그 안의 데이터는 모두 사라집니다."},
+    {l:34.5,t:34.4,w:11,h:3.2, tip:"파티션 포맷(F)", go:"part2", toast:"기존 파티션을 재사용할 때는 포맷하고 설치하는 것이 깔끔합니다."},
+    {...B.next, tip:"다음(N)", go:"ready"},
+    {...B.back, tip:"뒤로(B)", go:"eula"}
+  ],
+  toast:"시스템(EFI 200MB) · MSR(16MB) · 주 파티션이 자동 생성되었습니다.",
+  help:[{l:90.5,t:30,topic:"partition",tip:"파티션 문제 해결"}]
+},
+ready: {
+  name:"설치 준비 완료", src:"8.jpg",
+  hots:[
+    {...B.next, tip:"설치(I)", go:"inst1"},
+    {...B.back, tip:"뒤로(B)", go:"part2"}
+  ],
+  toast:"이 단계에서 '이 PC는 Windows 11을 실행할 수 없습니다' 오류가 나면 ? 도움말을 확인하세요.",
+  help:[{l:90.5,t:30,topic:"tpm",tip:"보안 부팅 / TPM 2.0 오류"}]
+},
+
+/* ---------- 설치 진행 ---------- */
+inst1: {
+  name:"Windows 11 설치 중", type:"anim",
+  frames:["9-1.jpg","9-2.jpg.jpg","9-3.jpg","9-4.jpg","9-5.jpg","9-6.jpg","9-7.jpg","9-8.jpg","9-9.jpg"],
+  interval:700, go:"inst2",
+  toast:"설치가 진행됩니다. 실제로는 수 분~수십 분 걸리며 PC가 여러 번 재시작됩니다."
+},
+inst2: {
+  name:"설치 중 (재시작 후)", type:"anim",
+  frames: seq("10-",1,11), interval:520, go:"region"
+},
+
+/* ---------- OOBE ---------- */
+region: {
+  name:"국가 또는 지역 선택", src:"11.jpg",
+  hots:[
+    {l:53.5,t:24.0,w:36,h:7.0, tip:"한국 선택", go:"region"},
+    {...B.o1, tip:"예", go:"kbd2"}
+  ],
+  toast:"여기서 네트워크 연결 화면이 뜨면 ? 도움말의 [인터넷 연결]을 확인하세요.",
+  help:[{l:92.2,t:5,topic:"network",tip:"인터넷 연결 문제"}]
+},
+kbd2: {
+  name:"키보드 종류 확인", src:"12.jpg",
+  hots:[
+    {l:53.5,t:33.0,w:36,h:7.5, tip:"Microsoft 입력기", go:"kbd2"},
+    {...B.o1, tip:"예", go:"kbd3"}
+  ],
+  help:[{l:92.2,t:5,topic:"network",tip:"인터넷 연결 문제"}]
+},
+kbd3: {
+  name:"두 번째 키보드 레이아웃", src:"13.jpg",
+  hots:[
+    {...B.o1, tip:"건너뛰기", go:"upd"},
+    {...B.o2, tip:"레이아웃 추가", go:"kbd3", toast:"두 번째 자판이 필요 없다면 [건너뛰기]를 누르세요."}
+  ]
+},
+upd: {
+  name:"업데이트 확인 중", type:"anim",
+  frames: seq("14-",1,15), interval:420, go:"devname",
+  toast:"인터넷이 연결되어 있어야 이 단계가 넘어갑니다.",
+  help:[{l:92.2,t:5,topic:"network",tip:"인터넷 연결 문제"}]
+},
+devname: {
+  name:"장치 이름 지정", src:"15.jpg",
+  hots:[
+    {l:53.0,t:29.5,w:30,h:5.0, tip:"장치 이름 입력", go:"devname2"},
+    {...B.o2, tip:"건너뛰기", go:"unlock"}
+  ],
+  toast:"이름을 지정하면 PC가 한 번 다시 시작됩니다.",
+  help:[{l:92.2,t:5,topic:"network",tip:"인터넷 연결 문제"}]
+},
+devname2: {
+  name:"장치 이름 지정 (입력됨)", src:"15-1.jpg",
+  hots:[
+    {...B.o1, tip:"다음", go:"unlock"},
+    {...B.o2, tip:"건너뛰기", go:"unlock"}
+  ]
+},
+
+/* ---------- 로그인 ---------- */
+unlock: {
+  name:"Microsoft 환경 잠금 해제", src:"16.jpg",
+  hots:[{...B.o1, tip:"로그인", go:"login1"}],
+  toast:"로컬 계정으로 쓰고 싶다면 ? 도움말의 [로그인] 항목을 보세요.",
+  help:[{l:92.2,t:5,topic:"login",tip:"로그인 문제 해결"}]
+},
+login1: {
+  name:"Microsoft 계정 로그인", src:"17-1.jpg",
+  hots:[
+    {l:53.5,t:40.0,w:38,h:4.5, tip:"전자 메일 입력", go:"login1"},
+    {...B.o1, tip:"다음", go:"login2"},
+    {...B.o2, tip:"자세히 알아보기", go:"login1"}
+  ],
+  help:[{l:92.2,t:5,topic:"login",tip:"로그인 문제 해결"}]
+},
+login2: {
+  name:"로그인 방법 선택", src:"17-4.jpg",
+  hots:[
+    {l:53.0,t:44.5,w:39,h:6.5, tip:"얼굴·지문·PIN 또는 보안 키", go:"loginKey"},
+    {l:53.0,t:52.5,w:39,h:6.5, tip:"내 Microsoft 앱으로 승인", go:"loginApp"}
+  ],
+  toast:"로그인 방법을 고르세요. 잘 안 되면 다른 방법으로 바꿀 수 있습니다.",
+  help:[{l:92.2,t:5,topic:"login",tip:"로그인 문제 해결"}]
+},
+loginKey: {
+  name:"암호 키(보안 키)로 로그인", src:"17-2.jpg",
+  hots:[{...B.o1, tip:"취소", go:"loginErr"}],
+  toast:"보안 키(USB)가 없으면 [취소]를 눌러 다른 방법으로 진행하세요.",
+  help:[{l:92.2,t:5,topic:"login",tip:"로그인 문제 해결"}]
+},
+loginErr: {
+  name:"로그인할 수 없음 (오류)", src:"17-3.jpg",
+  hots:[
+    {...B.o1, tip:"다시 시도", go:"login2"},
+    {l:53.0,t:62.0,w:13,h:3.0, tip:"다른 방법으로 로그인", go:"loginApp"}
+  ],
+  toast:"⚠ 암호 키 로그인 실패 화면입니다. [다른 방법으로 로그인]을 눌러 보세요.",
+  help:[{l:92.2,t:5,topic:"login",tip:"로그인 문제 해결"}]
+},
+loginApp: {
+  name:"Microsoft 앱으로 승인", src:"17-5.jpg",
+  hots:[{l:53.0,t:52.5,w:39,h:6.5, tip:"내 Microsoft 앱을 사용하여 요청 승인", go:"loginAuth"}],
+  help:[{l:92.2,t:5,topic:"login",tip:"로그인 문제 해결"}]
+},
+loginAuth: {
+  name:"Authenticator 앱 확인", type:"anim",
+  frames:["17-6.jpg"], interval:2600, go:"pin1",
+  toast:"휴대폰 Microsoft Authenticator에서 화면의 숫자를 선택하면 넘어갑니다."
+},
+pin1: {
+  name:"PIN 만들기", src:"18-1.jpg",
+  hots:[{...B.o1, tip:"PIN 만들기", go:"pin2"}],
+  help:[{l:92.2,t:5,topic:"login",tip:"로그인 문제 해결"}]
+},
+pin2: {
+  name:"PIN 설정", src:"18-2.jpg",
+  hots:[
+    {l:51.0,t:40.0,w:39,h:4.0, tip:"새 PIN 입력", go:"pin2"},
+    {l:51.0,t:50.0,w:39,h:4.0, tip:"PIN 확인 입력", go:"pin2"},
+    {...B.o1, tip:"확인", go:"pri1"},
+    {...B.o2, tip:"취소", go:"pin1"}
+  ],
+  toast:"숫자 4자리 이상. 기본값은 숫자만 허용됩니다."
+},
+
+/* ---------- 개인 정보 설정 ---------- */
+pri1: {
+  name:"위치 사용 허용", src:"19.jpg",
+  hots:[
+    {l:51.5,t:41.0,w:38,h:20.0, tip:"예", go:"pri1"},
+    {l:51.5,t:62.5,w:38,h:15.0, tip:"아니요", go:"pri1"},
+    {...B.o1b, tip:"수락", go:"pri2"}
+  ],
+  toast:"예/아니요를 고른 뒤 [수락]을 누르면 다음으로 넘어갑니다."
+},
+pri2: {
+  name:"내 디바이스 찾기", src:"20.jpg",
+  hots:[
+    {l:51.5,t:37.0,w:38,h:20.0, tip:"예", go:"pri2"},
+    {l:51.5,t:58.5,w:38,h:15.5, tip:"아니요", go:"pri2"},
+    {...B.o1b, tip:"수락", go:"pri3"}
+  ]
+},
+pri3: {
+  name:"진단 데이터 보내기", src:"21.jpg",
+  hots:[
+    {l:51.5,t:37.0,w:38,h:30.0, tip:"선택 항목 포함", go:"pri3"},
+    {l:51.5,t:68.5,w:38,h:9.0, tip:"필수 요소만", go:"pri3"},
+    {...B.o1b, tip:"수락", go:"pri4"}
+  ]
+},
+pri4: {
+  name:"수동 입력 및 타이핑 개선", src:"22.jpg",
+  hots:[
+    {l:51.5,t:37.0,w:38,h:16.5, tip:"예", go:"pri4"},
+    {l:51.5,t:55.0,w:38,h:15.0, tip:"아니요", go:"pri4"},
+    {...B.o1b, tip:"수락", go:"pri5"}
+  ]
+},
+pri5: {
+  name:"개인 설정된 제안 받기", src:"23.jpg",
+  hots:[
+    {l:51.5,t:37.0,w:38,h:25.0, tip:"예", go:"pri5"},
+    {l:51.5,t:63.5,w:38,h:14.0, tip:"아니요", go:"pri5"},
+    {...B.o1b, tip:"수락", go:"back1"}
+  ]
+},
+
+/* ---------- 백업 복원 ---------- */
+back1: {
+  name:"다시 오신 것을 환영합니다 (백업 복원)", src:"24.jpg",
+  hots:[
+    {...B.o1, tip:"계속", go:"back2"},
+    {...B.o2, tip:"자세히 알아보기", go:"back1"}
+  ],
+  toast:"이전 PC 백업이 있으면 앱·설정·폴더를 그대로 가져올 수 있습니다."
+},
+back2: {
+  name:"백업 복원 확인", src:"24-3.jpg",
+  hots:[
+    {...B.o1, tip:"백업에서 복원", go:"dl1"},
+    {l:64.0,t:82.9,w:12.5,h:4.0, tip:"새 PC로 설정 (백업 사용 안 함)", go:"custom"}
+  ]
+},
+dl1: {
+  name:"업데이트 다운로드 중", type:"anim",
+  frames:["25-1.jpg","25-2.jpg"], interval:1500, go:"dl2"
+},
+dl2: {
+  name:"작업을 위한 준비 중", type:"anim",
+  frames: seq("25-",3,9), interval:450, go:"custom"
+},
+
+/* ---------- 마무리 ---------- */
+custom: {
+  name:"환경 사용자 지정", src:"26.jpg",
+  hots:[
+    {...B.o1, tip:"적용", go:"phone"},
+    {...B.o2, tip:"건너뛰기", go:"phone"}
+  ]
+},
+phone: {
+  name:"PC에서 휴대폰 사용", src:"27-1.jpg",
+  hots:[
+    {...B.o2, tip:"건너뛰기", go:"edge"},
+    {...B.o1, tip:"다음", go:"edge"}
+  ]
+},
+edge: {
+  name:"브라우저 데이터 가져오기", src:"28.jpg",
+  hots:[
+    {l:51.5,t:38.5,w:38,h:7.5, tip:"예, 가져오기", go:"m365"},
+    {l:51.5,t:48.5,w:38,h:7.5, tip:"나중에", go:"m365"},
+    {...B.o1, tip:"다음", go:"m365"}
+  ]
+},
+m365: {
+  name:"Microsoft 365 구독 안내", src:"29-1.jpg",
+  hots:[
+    {l:59.0,t:83.0,w:15,h:4.2, tip:"아니요, 괜찮습니다", go:"desktop"},
+    {...B.o1, tip:"다시 구독", go:"desktop"}
+  ],
+  toast:"필요 없으면 [아니요, 괜찮습니다]를 누르면 됩니다."
+},
+desktop: {
+  name:"설치 완료 — 바탕화면", src:"30-1.jpg",
+  hots:[], finish:true
+}
+
+};
+
+/* 순서(진행률용) */
+const ORDER = ["boot","lang","keyb","opt","opt2","key","keyChk","keyOk","edi1","edi2","eula",
+"part1","part2","ready","inst1","inst2","region","kbd2","kbd3","upd","devname","devname2",
+"unlock","login1","login2","loginKey","loginErr","loginApp","loginAuth","pin1","pin2",
+"pri1","pri2","pri3","pri4","pri5","back1","back2","dl1","dl2","custom","phone","edge","m365","desktop"];
+
+/* ===================================================================
+   엔진
+   =================================================================== */
+let cur = null, history = [], timer = null, frameIdx = 0;
+const $ = id => document.getElementById(id);
+const stage = $("stage"), shot = $("shot");
+
+function goMain(){
+  stopAnim();
+  $("sim").style.display = "none";
+  $("main").style.display = "flex";
+}
+function startSim(){
+  $("main").style.display = "none";
+  $("sim").style.display = "flex";
+  $("steptotal").textContent = ORDER.length;
+  history = [];
+  render("boot");
+}
+function restart(){ history = []; $("done").style.display="none"; render("boot"); }
+
+function stopAnim(){ if(timer){ clearInterval(timer); timer=null; } }
+
+function clearOverlays(){
+  [...stage.querySelectorAll(".hot,.helpdot")].forEach(e => e.remove());
+}
+
+function toast(msg){
+  const t = $("toast");
+  if(!msg){ t.classList.remove("show"); return; }
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>t.classList.remove("show"), 5200);
+}
+
+function render(id, noPush){
+  const sc = S[id];
+  if(!sc){ console.warn("없는 화면:", id); return; }
+  stopAnim();
+  if(cur && !noPush && cur !== id) history.push(cur);
+  cur = id;
+  clearOverlays();
+  $("done").style.display = sc.finish ? "flex" : "none";
+
+  // 진행률
+  const i = ORDER.indexOf(id);
+  $("stepno").textContent = i < 0 ? "-" : (i+1);
+  $("stepname").textContent = sc.name;
+  $("bar").firstElementChild.style.width = ((i+1)/ORDER.length*100) + "%";
+
+  if(sc.type === "anim"){
+    frameIdx = 0;
+    shot.src = img(sc.frames[0]);
+    if(sc.toast) toast(sc.toast);
+    addHelp(sc);
+    timer = setInterval(()=>{
+      frameIdx++;
+      if(frameIdx >= sc.frames.length){ stopAnim(); render(sc.go); return; }
+      shot.src = img(sc.frames[frameIdx]);
+    }, sc.interval || 600);
+    return;
+  }
+
+  shot.src = img(sc.src);
+  toast(sc.toast || "");
+  (sc.hots || []).forEach(h => {
+    const d = document.createElement("div");
+    d.className = "hot";
+    d.style.cssText = `left:${h.l}%;top:${h.t}%;width:${h.w}%;height:${h.h}%`;
+    if(h.tip){
+      const s = document.createElement("span");
+      s.className = "tip"; s.textContent = h.tip;
+      d.appendChild(s);
+    }
+    d.onclick = e => {
+      e.stopPropagation();
+      if(h.toast) toast(h.toast);
+      if(h.go && h.go !== cur) render(h.go);
+      else if(h.go === cur && !h.toast) toast(h.tip + " 선택됨");
+    };
+    stage.appendChild(d);
+  });
+  addHelp(sc);
+}
+
+function addHelp(sc){
+  (sc.help || []).forEach(h => {
+    const b = document.createElement("div");
+    b.className = "helpdot";
+    b.style.cssText = `left:${h.l}%;top:${h.t}%`;
+    b.textContent = "?";
+    const s = document.createElement("span");
+    s.className = "tip"; s.textContent = h.tip || "도움말";
+    b.appendChild(s);
+    b.onclick = e => { e.stopPropagation(); openHelp(h.topic); };
+    stage.appendChild(b);
+  });
+}
+
+function prevStep(){
+  if(!history.length) return;
+  const p = history.pop();
+  render(p, true);
+}
+function toggleHint(){
+  document.body.classList.toggle("hint");
+  const on = document.body.classList.contains("hint");
+  $("hintbtn").textContent = "힌트 표시 " + (on ? "ON" : "OFF");
+  $("hintbtn").classList.toggle("on", on);
+}
+
+document.addEventListener("keydown", e=>{
+  if($("help").style.display === "flex"){ if(e.key === "Escape") closeHelp(); return; }
+  if($("sim").style.display !== "flex") return;
+  if(e.key === "Escape"){ goMain(); return; }
+  if(e.key === "Backspace" || e.key === "ArrowLeft"){ e.preventDefault(); prevStep(); return; }
+  if(e.key === "Enter" || e.key === " "){
+    e.preventDefault();
+    const sc = S[cur];
+    if(sc && sc.hots && sc.hots.length){
+      const main = sc.hots.find(h => h.go && h.go !== cur) || sc.hots[0];
+      if(main.go) render(main.go);
+    }
+  }
+});
+
+/* ===================================================================
+   도움말 내용
+   =================================================================== */
+const HELP = {
+partition: {
+  title:"파티션 설치 화면 문제 해결",
+  short:"디스크가 안 보임 / GPT·MBR 오류",
+  html:`
+<p class="lead">“Windows 11을 설치할 위치 선택” 화면에서 가장 많이 막히는 3가지: <b>디스크가 아예 안 보임</b>, <b>GPT/MBR 오류</b>, <b>파티션을 어떻게 나눌지 모름</b>.</p>
+
+<h4>1. 디스크(SSD)가 목록에 안 보여요</h4>
+<p><span class="tag err">증상</span> 목록이 텅 비어 있거나 USB만 보입니다. 대부분 <b>저장장치 컨트롤러 드라이버</b> 문제입니다.</p>
+<ul>
+  <li><b>먼저 [새로 고침(R)]</b>을 한 번 눌러 봅니다.</li>
+  <li><b>BIOS에서 VMD / RST(Intel Rapid Storage) 끄기</b> — 최근 인텔 노트북·메인보드의 기본 원인입니다.<br>
+      BIOS → Advanced → <code>VMD Controller</code> 또는 <code>SATA Mode</code> → <b>Disabled / AHCI</b>로 변경.</li>
+  <li>VMD를 꼭 켜야 한다면 메인보드·노트북 제조사 홈페이지에서 <b>IRST(VMD) 드라이버</b>를 받아 USB에 풀고,
+      설치 화면의 <b>[드라이버 로드(L)]</b> → 해당 폴더 선택.</li>
+  <li>NVMe SSD가 슬롯에 제대로 꽂혀 있는지, BIOS 저장장치 목록에 뜨는지 확인.</li>
+</ul>
+<div class="box info"><b>확인 팁</b> — 설치 화면에서 <kbd>Shift</kbd>+<kbd>F10</kbd> → <code>diskpart</code> → <code>list disk</code> 로 디스크가 잡히는지 볼 수 있습니다.</div>
+
+<h4>2. “이 디스크에 Windows를 설치할 수 없습니다” (GPT / MBR)</h4>
+<p><span class="tag err">증상</span> “선택한 디스크는 GPT 파티션 스타일입니다” 또는 “MBR 파티션 테이블이 있습니다”.</p>
+<p>부팅 방식과 디스크 형식이 <b>서로 맞지 않아서</b> 나는 오류입니다.</p>
+<ul>
+  <li><b>UEFI 부팅</b> → 디스크는 <b>GPT</b> 여야 합니다. (Windows 11 정식 설치는 UEFI + GPT 필수)</li>
+  <li><b>Legacy/CSM 부팅</b> → MBR. Windows 11에서는 권장하지 않습니다.</li>
+</ul>
+<p><b>해결 — BIOS를 UEFI로 맞추고 디스크를 GPT로 변환</b> (⚠ 디스크의 모든 데이터가 지워집니다)</p>
+<pre><code>Shift + F10   (명령 프롬프트 열기)
+diskpart
+list disk                 ← 설치할 디스크 번호 확인 (용량으로 구분!)
+select disk 0             ← 번호를 정확히 확인하고 입력
+clean                     ← ⚠ 이 디스크의 모든 내용 삭제
+convert gpt
+exit
+exit</code></pre>
+<div class="box warn"><b>주의</b> — <code>clean</code>은 되돌릴 수 없습니다. <code>list disk</code>에서 <b>용량을 보고</b> USB가 아닌 설치 대상 디스크인지 반드시 확인하세요.</div>
+<p>변환 후 파티션 화면에서 <b>[새로 고침(R)]</b> → 할당되지 않은 공간 선택 → <b>[다음]</b>.</p>
+
+<h4>3. 파티션은 어떻게 나눠야 하나요?</h4>
+<p>할당되지 않은 공간을 선택하고 <b>[다음]</b>만 눌러도 Windows가 알아서 만듭니다. 자동 생성 결과:</p>
+<ul>
+  <li><b>파티션 1 · 시스템(EFI)</b> — 약 100~300MB, 부팅 파일</li>
+  <li><b>파티션 2 · MSR(예약)</b> — 16MB</li>
+  <li><b>파티션 3 · 주</b> — 실제 Windows가 설치되는 C 드라이브</li>
+  <li>(경우에 따라) <b>복구 파티션</b> — 500MB~1GB</li>
+</ul>
+<p>C·D로 나누고 싶다면 <b>[파티션 만들기(C)]</b>에서 C 드라이브 크기를 MB 단위로 지정합니다.
+   예: 200GB = <code>204800</code> MB. 남은 공간은 설치 후 <b>디스크 관리</b>에서 D로 만들어도 됩니다.</p>
+<div class="box ok"><b>권장</b> — Windows 11은 시스템 파티션(C)에 최소 64GB, 실사용 기준 <b>120GB 이상</b>을 잡는 것이 편합니다.</div>
+
+<h4>4. 기존 Windows를 지우고 새로 깔고 싶어요</h4>
+<ol>
+  <li>파티션 화면에서 기존 <b>시스템 / MSR / 주 / 복구</b> 파티션을 하나씩 선택 → <b>[파티션 삭제(D)]</b></li>
+  <li>모두 지우면 “할당되지 않은 공간” 하나만 남습니다.</li>
+  <li>그 공간을 선택하고 <b>[다음]</b> → 깨끗한 새 설치.</li>
+</ol>
+<div class="box warn"><b>⚠ 데이터 백업</b> — 삭제한 파티션의 파일은 복구할 수 없습니다. D 드라이브(데이터용)는 건드리지 마세요.</div>
+
+<h4>5. 그 밖의 오류</h4>
+<ul>
+  <li><span class="tag err">0x80300024</span> 디스크가 여러 개 꽂혀 있을 때 자주 발생 → <b>설치 대상 외 디스크를 잠시 분리</b>하고 설치.</li>
+  <li><span class="tag err">“이 하드웨어에서 부팅할 수 없습니다”</span> → BIOS 부팅 순서에서 설치할 디스크가 1순위인지 확인.</li>
+  <li>설치 후 D 드라이브가 안 보임 → <b>디스크 관리</b>(<code>diskmgmt.msc</code>)에서 드라이브 문자 할당.</li>
+</ul>
+`
+},
+
+tpm: {
+  title:"보안 부팅 · TPM 2.0 미지원 해결",
+  short:"“이 PC는 Windows 11을 실행할 수 없습니다”",
+  html:`
+<p class="lead">“이 PC는 현재 Windows 11 시스템 요구 사항을 충족하지 않습니다” 메시지는 대부분 <b>기능이 없어서가 아니라 BIOS에서 꺼져 있어서</b> 나옵니다. 먼저 BIOS부터 확인하세요.</p>
+
+<h4>Windows 11 최소 요구 사항</h4>
+<ul>
+  <li><b>TPM 2.0</b> (Intel PTT / AMD fTPM 포함)</li>
+  <li><b>보안 부팅(Secure Boot)</b> 지원 및 활성화 (UEFI 모드)</li>
+  <li>1GHz 이상 <b>64비트 2코어</b> 이상 CPU (지원 CPU 목록 해당)</li>
+  <li>RAM <b>4GB</b> 이상, 저장공간 <b>64GB</b> 이상</li>
+  <li>디스크는 <b>GPT</b>, 부팅은 <b>UEFI</b></li>
+</ul>
+
+<h4>1. TPM 2.0 켜기 (BIOS)</h4>
+<p>거의 모든 2016년 이후 PC는 TPM이 <b>메인보드에 내장</b>되어 있고 꺼져 있을 뿐입니다.</p>
+<ul>
+  <li><b>Intel</b> — BIOS → Advanced / Security → <code>PTT (Platform Trust Technology)</code> → <b>Enabled</b></li>
+  <li><b>AMD</b> — BIOS → Advanced / Security → <code>fTPM</code> 또는 <code>AMD fTPM Switch</code> → <b>Enabled / Firmware TPM</b></li>
+  <li>메인보드 제조사별 위치: ASUS는 <i>Advanced → PCH-FW Configuration</i>, MSI는 <i>Settings → Security → Trusted Computing</i>, 기가바이트는 <i>Settings → Miscellaneous</i></li>
+</ul>
+<div class="box info"><b>확인 방법</b> — Windows에서 <kbd>Win</kbd>+<kbd>R</kbd> → <code>tpm.msc</code> 실행 → “사양 버전 2.0”이면 정상입니다.</div>
+
+<h4>2. 보안 부팅(Secure Boot) 켜기</h4>
+<ol>
+  <li>BIOS → Boot → <code>CSM (Compatibility Support Module)</code> → <b>Disabled</b><br>
+      <span style="color:#ffd982">※ CSM이 켜져 있으면 Secure Boot 항목이 회색으로 잠깁니다. 반드시 먼저 끄세요.</span></li>
+  <li>BIOS → Security(또는 Boot) → <code>Secure Boot</code> → <b>Enabled</b></li>
+  <li>회색으로 눌리지 않으면 → <code>Restore Factory Keys</code> / <code>Install default Secure Boot keys</code> 실행 후 다시 시도</li>
+  <li>저장 후 재부팅. 디스크가 MBR이면 부팅이 안 되므로 <b>GPT 변환</b>이 함께 필요합니다(파티션 도움말 참고).</li>
+</ol>
+<div class="box info"><b>확인 방법</b> — <kbd>Win</kbd>+<kbd>R</kbd> → <code>msinfo32</code> → “보안 부팅 상태 : 사용”, “BIOS 모드 : UEFI” 확인.</div>
+
+<h4>3. MBR 디스크라면 GPT로 (데이터 유지 변환)</h4>
+<p>기존 Windows를 유지한 채 변환하려면 Windows 안에서 <b>MBR2GPT</b>를 사용합니다.</p>
+<pre><code>관리자 권한 명령 프롬프트에서
+mbr2gpt /validate /allowFullOS
+mbr2gpt /convert  /allowFullOS
+→ 성공 후 BIOS에서 CSM 끄고 UEFI + Secure Boot 켜기</code></pre>
+<div class="box warn">변환 전 <b>반드시 백업</b>하세요. 실패 시 부팅이 되지 않을 수 있습니다. 새로 설치할 거라면 diskpart의 <code>clean → convert gpt</code>가 더 간단합니다.</div>
+
+<h4>4. 정말 지원되지 않는 오래된 PC라면 (요구 사항 우회)</h4>
+<div class="box warn">
+<b>⚠ 먼저 읽어 주세요.</b> 이 방법은 Microsoft가 <b>권장하지 않는</b> 방식입니다.<br>
+· 향후 업데이트가 제공되지 않을 수 있고, 제조사 보증·지원을 받지 못할 수 있습니다.<br>
+· 드라이버 문제로 불안정할 수 있습니다. <b>가능하면 BIOS 설정으로 해결하세요.</b>
+</div>
+<p>설치 중 오류 화면에서 <kbd>Shift</kbd>+<kbd>F10</kbd> → <code>regedit</code> 실행:</p>
+<pre><code>HKEY_LOCAL_MACHINE\\SYSTEM\\Setup
+  └ LabConfig 키를 새로 만들고, 아래 DWORD(32비트) 값 추가
+
+  BypassTPMCheck        = 1
+  BypassSecureBootCheck = 1
+  BypassRAMCheck        = 1
+  BypassCPUCheck        = 1
+  BypassStorageCheck    = 1</code></pre>
+<p>레지스트리 편집기를 닫고 <b>[뒤로]</b>를 눌러 설치를 이어가면 검사를 건너뜁니다.</p>
+<p>USB를 만들 때부터 우회하려면 <b>Rufus</b>로 ISO를 구울 때 “Remove requirement for 4GB+ RAM, Secure Boot and TPM 2.0” 옵션을 체크하는 방법도 있습니다.</p>
+
+<h4>5. 그래도 안 될 때 체크리스트</h4>
+<ul>
+  <li>BIOS를 <b>최신 버전으로 업데이트</b> — 구형 보드는 TPM 항목 자체가 업데이트로 추가되기도 합니다.</li>
+  <li>BIOS <b>Load Optimized Defaults</b> 후 다시 설정.</li>
+  <li>CPU가 <b>공식 지원 목록</b>에 있는지 확인 (Intel 8세대 이상 / AMD Ryzen 2000 이상이 기준).</li>
+  <li>“PC 상태 검사(PC Health Check)” 앱으로 어떤 항목이 걸리는지 정확히 확인.</li>
+</ul>
+`
+},
+
+network: {
+  title:"인터넷 연결 화면 문제 해결",
+  short:"Wi-Fi 안 잡힘 / 오프라인 설치",
+  html:`
+<p class="lead">초기 설정(OOBE)에서 “네트워크에 연결합시다” 화면에 갇히면 다음을 확인하세요. 25H2에서는 인터넷 연결이 사실상 <b>필수</b>로 요구됩니다.</p>
+
+<h4>1. 가장 쉬운 방법 — 유선 랜 연결</h4>
+<p>공유기에서 <b>랜선을 직접 꽂으면</b> 화면이 자동으로 넘어갑니다. 무선랜 드라이버가 없어도 유선은 대부분 기본 드라이버로 잡힙니다. 설치 중에는 유선을 쓰고, 설치가 끝난 뒤 Wi-Fi 드라이버를 설치하는 것이 가장 확실합니다.</p>
+
+<h4>2. Wi-Fi 목록이 아예 안 뜹니다</h4>
+<p><span class="tag err">원인</span> Windows 설치 이미지에 그 노트북의 <b>무선랜 드라이버가 없는</b> 경우입니다. (특히 최신 노트북 / Wi-Fi 6E·7 모듈)</p>
+<ul>
+  <li><b>유선 랜</b>으로 연결해서 설치를 끝낸 뒤, Windows Update가 알아서 무선랜 드라이버를 설치합니다.</li>
+  <li>유선이 없다면 → 다른 PC에서 제조사 홈페이지의 <b>무선랜(WLAN) 드라이버</b>를 USB에 담아 옵니다.<br>
+      OOBE 화면에서 <kbd>Shift</kbd>+<kbd>F10</kbd> → 드라이버 설치 파일 실행 → <code>exit</code> 로 복귀.</li>
+  <li><b>휴대폰 USB 테더링</b>도 매우 유용합니다. 폰을 USB로 연결하고 테더링을 켜면 대부분 바로 인식됩니다.</li>
+</ul>
+
+<h4>3. 인터넷 없이(로컬 계정으로) 설치하고 싶어요</h4>
+<div class="box info"><b>25H2 참고</b> — 예전에 쓰던 <code>OOBE\\BYPASSNRO</code> 명령은 최신 빌드에서 <b>제거</b>되었습니다. 아래 방법을 사용하세요.</div>
+<p><b>방법 A — 로컬 계정 마법사 바로 열기 (가장 간단)</b></p>
+<pre><code>Shift + F10   (명령 프롬프트)
+start ms-cxh:localonly</code></pre>
+<p>로컬 계정(사용자 이름·암호) 생성 창이 바로 떠서, 인터넷 없이 계정을 만들 수 있습니다.</p>
+
+<p><b>방법 B — 네트워크 요구 화면 강제로 넘기기</b></p>
+<pre><code>Shift + F10
+taskkill /F /IM oobenetworkconnectionflow.exe
+(또는)  taskkill /F /IM NetworkConnectionFlow.exe</code></pre>
+<p>네트워크 화면 프로세스를 종료하면 다음 단계로 넘어갑니다.</p>
+
+<p><b>방법 C — 예전 방식(빌드에 따라 동작)</b></p>
+<pre><code>Shift + F10
+oobe\\bypassnro
+→ PC가 재부팅되고 "인터넷에 연결되어 있지 않음" 선택지가 생깁니다</code></pre>
+<div class="box warn">로컬 계정으로 설치하면 <b>BitLocker 자동 암호화 키가 Microsoft 계정에 저장되지 않습니다.</b> 나중에 복구 키를 따로 백업해 두세요.</div>
+
+<h4>4. 연결은 됐는데 계속 “업데이트 확인 중”에서 멈춥니다</h4>
+<ul>
+  <li>10~20분은 정상입니다. 회선이 느리면 더 걸릴 수 있으니 <b>기다려 보세요.</b></li>
+  <li>너무 오래 걸리면 랜선을 <b>뽑았다가</b> 넘어간 뒤, 설치 완료 후 업데이트하는 방법도 있습니다.</li>
+  <li>공유기 DNS 문제일 수 있습니다 → <kbd>Shift</kbd>+<kbd>F10</kbd> → <code>ipconfig /flushdns</code></li>
+  <li>회사·학교망은 인증 포털 때문에 막힐 수 있습니다. <b>휴대폰 핫스팟</b>으로 바꿔 보세요.</li>
+</ul>
+
+<h4>5. 자주 나오는 오류</h4>
+<ul>
+  <li><span class="tag err">“연결할 수 없음”</span> Wi-Fi 비밀번호 재확인, 5GHz/2.4GHz 대역 바꿔 시도.</li>
+  <li><span class="tag err">“제한됨”</span> 공유기 재부팅, 랜선 다른 포트로.</li>
+  <li><span class="tag err">유선인데 X표시</span> 메인보드 랜 드라이버 부재 → USB 유선 랜 어댑터 또는 폰 테더링.</li>
+</ul>
+`
+},
+
+login: {
+  title:"로그인(Microsoft 계정) 문제 해결",
+  short:"계정 로그인 실패 / PIN 오류",
+  html:`
+<p class="lead">“Microsoft 환경 잠금 해제 → 로그인” 단계에서 막힐 때의 해결 방법입니다. 시뮬레이터의 17번 화면 흐름과 같습니다.</p>
+
+<h4>1. 암호 키(패스키·보안 키) 로그인이 실패합니다</h4>
+<p><span class="tag err">증상</span> “로그인할 수 없음 — 암호 키로 로그인하려고 할 때 문제가 발생했습니다.”</p>
+<ol>
+  <li>화면 아래 <b>[다른 방법으로 로그인]</b> 클릭.</li>
+  <li>“내 Microsoft 앱을 사용하여 요청 승인” 또는 “암호 사용”을 선택.</li>
+  <li>보안 키(USB)를 쓸 거라면 <b>USB 2.0 포트</b>에 다시 꽂고 [다시 시도].</li>
+</ol>
+<div class="box info">새 PC에는 아직 패스키가 등록되어 있지 않으므로, 이 단계에서는 <b>암호 또는 Authenticator 앱</b>으로 로그인하는 것이 가장 확실합니다.</div>
+
+<h4>2. Authenticator 앱에 알림/숫자가 안 옵니다</h4>
+<ul>
+  <li>휴대폰이 <b>인터넷에 연결</b>되어 있는지 확인.</li>
+  <li>Authenticator 앱을 직접 열어 보세요(알림이 막혀도 앱 안에는 요청이 표시됩니다).</li>
+  <li>휴대폰 <b>시간을 자동으로</b>(네트워크 시간) 설정. 시간이 틀리면 인증이 실패합니다.</li>
+  <li>앱 알림 권한 허용, 배터리 절약 모드 해제.</li>
+  <li>그래도 안 오면 <b>[내 Microsoft 앱에 액세스할 수 없습니다]</b> → 다른 인증 수단(문자·이메일·백업 코드) 선택.</li>
+</ul>
+
+<h4>3. 2단계 인증을 받을 수 없어요</h4>
+<ul>
+  <li>미리 저장해 둔 <b>복구 코드(백업 코드)</b>를 입력.</li>
+  <li>다른 기기에서 <code>account.microsoft.com</code> → 보안 → 인증 방법 확인/변경.</li>
+  <li>정 안 되면 <b>이 단계는 로컬 계정으로 넘기고</b>, 설치 완료 후 여유 있게 Microsoft 계정을 연결하는 것을 권합니다.</li>
+</ul>
+
+<h4>4. 로컬 계정으로 만들고 싶어요 (Microsoft 계정 없이)</h4>
+<pre><code>이 화면에서  Shift + F10
+start ms-cxh:localonly
+→ 사용자 이름 / 암호 / 보안 질문 입력 후 로컬 계정 생성</code></pre>
+<p>또는 로그인 화면에서 존재하지 않는 계정(예: <code>a@a.a</code>)과 아무 암호를 넣어 실패시키면 로컬 계정 생성 단계로 넘어가는 빌드도 있습니다.</p>
+<div class="box warn">로컬 계정은 <b>Microsoft Store · OneDrive · 설정 동기화 · 내 디바이스 찾기</b>가 제한됩니다. 나중에 [설정 → 계정]에서 언제든 전환할 수 있습니다.</div>
+
+<h4>5. PIN 설정에서 막힙니다</h4>
+<ul>
+  <li>PIN은 <b>기본 4자리 이상 숫자</b>입니다. 문자·기호를 쓰려면 [문자 및 기호 포함] 체크.</li>
+  <li>“1234”, “0000”, 생년월일 같은 <b>단순 패턴은 거부</b>될 수 있습니다.</li>
+  <li>“문제가 발생했습니다” 오류 → 인터넷 연결 확인 후 [취소] → 다시 [PIN 만들기].</li>
+  <li>계속 실패하면 <b>[건너뛰기 / 나중에]</b>로 넘긴 뒤, 설치 후 [설정 → 계정 → 로그인 옵션]에서 만들면 됩니다.</li>
+</ul>
+
+<h4>6. 계정 이름·프로필 폴더 이름 관련</h4>
+<div class="box info">
+Microsoft 계정으로 설치하면 사용자 폴더 이름이 <b>이메일 앞 5글자</b>로 자동 생성됩니다(예: <code>C:\\Users\\comgo</code>).<br>
+폴더 이름을 원하는 대로 정하고 싶다면 <b>로컬 계정으로 먼저 만든 뒤</b> Microsoft 계정을 연결하세요.
+</div>
+
+<h4>7. 그 밖의 증상</h4>
+<ul>
+  <li><span class="tag err">로그인 후 검은 화면에서 멈춤</span> → 10분 정도 기다려 보고, 안 되면 강제 종료 후 재부팅(설정이 이어집니다).</li>
+  <li><span class="tag err">“이 계정으로 로그인할 수 없습니다”</span> → 회사/학교 계정일 수 있습니다. 개인 계정으로 시도하세요.</li>
+  <li><span class="tag err">잘못된 계정으로 로그인함</span> → 설치 완료 후 [설정 → 계정 → 사용자 정보]에서 변경.</li>
+</ul>
+`
+},
+
+media: {
+  title:"설치 USB · 부팅 문제",
+  short:"USB로 부팅이 안 될 때",
+  html:`
+<p class="lead">“Press any key to boot from CD or DVD” 가 아예 안 나오거나, USB로 부팅되지 않을 때 확인할 것들입니다.</p>
+
+<h4>1. 부팅 메뉴로 들어가기</h4>
+<ul>
+  <li>전원을 켜자마자 <kbd>F12</kbd> / <kbd>F11</kbd> / <kbd>F8</kbd> / <kbd>ESC</kbd> 를 연타 (제조사별로 다름)</li>
+  <li>삼성·LG 노트북: <kbd>F10</kbd> 또는 <kbd>F12</kbd> / ASUS: <kbd>ESC</kbd> / MSI·기가바이트: <kbd>F11</kbd> / 인텔·ASRock: <kbd>F11</kbd></li>
+  <li>목록에서 <b>UEFI: (USB 이름)</b> 항목을 선택하세요. UEFI가 붙은 쪽으로 부팅해야 GPT 설치가 됩니다.</li>
+</ul>
+
+<h4>2. USB가 목록에 없어요</h4>
+<ul>
+  <li>USB를 <b>뒤쪽 USB 2.0 포트</b>에 꽂아 보세요(전면 포트·허브는 인식이 잘 안 될 때가 있습니다).</li>
+  <li><b>Rufus</b> 또는 Microsoft <b>미디어 생성 도구</b>로 다시 만들기. 파티션 형식은 <b>GPT</b>, 대상 시스템은 <b>UEFI</b>.</li>
+  <li>BIOS → Boot → <code>USB Boot</code> / <code>Boot from USB</code> 가 Enabled 인지 확인.</li>
+  <li>Secure Boot 때문에 막힌다면 일시적으로 Disabled → 설치 후 다시 Enabled.</li>
+</ul>
+
+<h4>3. “Press any key” 가 지나가 버립니다</h4>
+<p>이 문구는 <b>약 5초</b>만 표시됩니다. 화면이 뜨자마자 <b>아무 키나 연타</b>하세요. 놓치면 기존 Windows로 부팅되므로 다시 재부팅합니다.</p>
+
+<h4>4. 설치 도중 재부팅되면 USB를 뽑아야 하나요?</h4>
+<p>Windows 11 설치는 중간에 여러 번 재부팅됩니다. 이때 다시 “Press any key…”가 나와도 <b>아무 키도 누르지 마세요.</b> 그냥 두면 설치가 이어집니다. (불안하면 첫 재부팅 시점에 USB를 뽑아도 됩니다.)</p>
+
+<h4>5. BIOS 부팅 순서 고정</h4>
+<p>설치가 끝나면 BIOS → Boot → <b>Boot Option #1</b>을 설치한 SSD로 지정해 두면 매번 부팅 메뉴를 고르지 않아도 됩니다.</p>
+`
+}
+};
+
+const HELPORDER = ["partition","tpm","network","login","media"];
+let helpCur = null;
+
+function buildHelpNav(){
+  const nav = $("helpnav");
+  nav.innerHTML = "";
+  HELPORDER.forEach(k=>{
+    const b = document.createElement("button");
+    b.innerHTML = HELP[k].title.replace(/ 문제 해결| 해결/,"") + "<small>" + HELP[k].short + "</small>";
+    b.dataset.k = k;
+    b.onclick = ()=> showHelp(k);
+    nav.appendChild(b);
+  });
+}
+function showHelp(k){
+  helpCur = k;
+  [...$("helpnav").children].forEach(b => b.classList.toggle("on", b.dataset.k === k));
+  const h = HELP[k];
+  $("helpcontent").innerHTML = "<h3>" + h.title + "</h3>" + h.html;
+  $("helpcontent").scrollTop = 0;
+}
+function openHelp(k){
+  $("help").style.display = "flex";
+  showHelp(k && HELP[k] ? k : "partition");
+}
+function closeHelp(){ $("help").style.display = "none"; }
+$("help").addEventListener("click", e => { if(e.target.id === "help") closeHelp(); });
+
+buildHelpNav();
+
+/* 이미지 로드 실패 안내 */
+shot.addEventListener("error", ()=>{
+  toast("⚠ 이미지를 찾을 수 없습니다. 이 HTML 파일을 '윈도우11 25H2 온라인 설치' 폴더와 같은 위치에 두세요.");
+});
+</script>
+</body>
+</html>
